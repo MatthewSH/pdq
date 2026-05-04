@@ -1,1 +1,1 @@
-# go-pdq
+# PDQ in Go
