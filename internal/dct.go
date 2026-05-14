@@ -26,6 +26,7 @@ var dctMatrix = func() [dctRows * dctCols]float32 {
 	return m
 }()
 
+// DCT64to16 performs a 2D Discrete Cosine Transform (DCT) to convert a 64x64 input into a reduced 16x16 output matrix.
 func DCT64to16(input []float32) []float32 {
 	out := make([]float32, dctRows*dctRows)
 

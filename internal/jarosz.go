@@ -18,6 +18,7 @@ const (
 	tileSize    = 32
 )
 
+// JaroszFilter applies a multi-stage Jarosz blur filter on the input image and returns the resulting filtered image.
 func JaroszFilter(src []float32) ([]float32, error) {
 	if len(src) != totalSize {
 		return nil, fmt.Errorf(
@@ -47,7 +48,7 @@ func JaroszFilter(src []float32) ([]float32, error) {
 			outRow[x] = srcRow[x*block+center]
 		}
 	}
-	
+
 	return out, nil
 }
 

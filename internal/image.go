@@ -7,14 +7,16 @@ import (
 	"golang.org/x/image/draw"
 )
 
-func resizeBilinear(src image.Image, size int) image.RGBA64Image {
+// ResizeBilinear resizes the given image using bilinear interpolation to the specified square size (width and height).
+func ResizeBilinear(src image.Image, size int) image.RGBA64Image {
 	dst := image.NewRGBA(image.Rect(0, 0, size, size))
 	draw.BiLinear.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Src, nil)
 
 	return dst
 }
 
-func toLuminance(src image.RGBA, size int) ([]float32, error) {
+// ToLuminance converts an RGBA image to a grayscale luminance representation and verifies the input image dimensions.
+func ToLuminance(src image.RGBA, size int) ([]float32, error) {
 	bounds := src.Bounds()
 	if (bounds.Dx() != size) || (bounds.Dy() != size) {
 		return nil, fmt.Errorf("source image dimensions do not match expected: %dx%d vs %dx%d", bounds.Dx(), bounds.Dy(), size, size)

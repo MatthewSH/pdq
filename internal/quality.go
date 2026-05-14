@@ -18,6 +18,8 @@ func abs(x int) int {
 	return (x ^ mask) - mask
 }
 
+// ComputeQuality calculates a quality score based on gradient differences in a 64x64 matrix of float32 values.
+// Returns an error if the input matrix does not match the required dimensions.
 func ComputeQuality(matrix []float32) (int, error) {
 	if len(matrix) != dims {
 		return 0, pdq.ErrMatrixLength

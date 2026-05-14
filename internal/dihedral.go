@@ -2,6 +2,8 @@ package internal
 
 import "github.com/MatthewSH/pdq"
 
+// DihedralHashes generates 8 quantized hash representations by applying dihedral transformations to a 16x16 DCT array.
+// Returns a 2D array of 8x16 hashes or an error if the input size is not 16x16 or a related computation fails.
 func DihedralHashes(dct []float32) ([8][16]uint16, error) {
 	if len(dct) != 16*16 {
 		return [8][16]uint16{}, pdq.ErrDihedralDCTSize

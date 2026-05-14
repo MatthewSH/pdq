@@ -2,6 +2,8 @@ package internal
 
 import "github.com/MatthewSH/pdq"
 
+// Quantize generates a 16-element hash by thresholding each value of a 16x16 input array against the provided median.
+// Returns an error if the input array length is not 256.
 func Quantize(input []float32, median float32) ([16]uint16, error) {
 	if len(input) != 16*16 {
 		return [16]uint16{}, pdq.ErrQuantizeLength

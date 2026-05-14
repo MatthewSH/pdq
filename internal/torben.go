@@ -5,6 +5,8 @@ import "github.com/MatthewSH/pdq"
 const n = 256
 const half = (n + 1) / 2
 
+// TorbenMedian calculates the median of a float32 slice using Torben's algorithm, optimized for a fixed slice size of 256.
+// Returns the median value or an error if the input slice length is not 256.
 func TorbenMedian(m []float32) (float32, error) {
 	if len(m) != n {
 		return 0, pdq.ErrTorbenElementLength
