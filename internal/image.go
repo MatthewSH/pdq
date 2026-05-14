@@ -8,7 +8,7 @@ import (
 )
 
 // ResizeBilinear resizes the given image using bilinear interpolation to the specified square size (width and height).
-func ResizeBilinear(src image.Image, size int) image.RGBA64Image {
+func ResizeBilinear(src image.Image, size int) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, size, size))
 	draw.BiLinear.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Src, nil)
 
@@ -16,7 +16,7 @@ func ResizeBilinear(src image.Image, size int) image.RGBA64Image {
 }
 
 // ToLuminance converts an RGBA image to a grayscale luminance representation and verifies the input image dimensions.
-func ToLuminance(src image.RGBA, size int) ([]float32, error) {
+func ToLuminance(src *image.RGBA, size int) ([]float32, error) {
 	bounds := src.Bounds()
 	if (bounds.Dx() != size) || (bounds.Dy() != size) {
 		return nil, fmt.Errorf("source image dimensions do not match expected: %dx%d vs %dx%d", bounds.Dx(), bounds.Dy(), size, size)

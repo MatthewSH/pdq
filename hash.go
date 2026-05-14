@@ -1,11 +1,15 @@
 package pdq
 
-import "encoding/hex"
+import (
+	"encoding/hex"
 
-type Hash256 [HashSize]byte
+	"github.com/MatthewSH/pdq/internal"
+)
+
+type Hash256 [internal.HashSize]byte
 
 func (h Hash256) Bytes() []byte {
-	b := make([]byte, HashSize)
+	b := make([]byte, internal.HashSize)
 	copy(b, h[:])
 
 	return b

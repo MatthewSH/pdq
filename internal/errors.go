@@ -1,4 +1,4 @@
-package pdq
+package internal
 
 import "errors"
 

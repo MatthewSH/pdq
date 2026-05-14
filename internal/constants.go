@@ -1,4 +1,4 @@
-package pdq
+package internal
 
 const (
 	HashSize                = 32

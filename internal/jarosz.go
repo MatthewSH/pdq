@@ -2,8 +2,6 @@ package internal
 
 import (
 	"fmt"
-
-	"github.com/MatthewSH/pdq"
 )
 
 const (
@@ -11,8 +9,8 @@ const (
 	windowSize  = 16
 	halfWindow  = windowSize / 2
 	kernelWidth = 2*halfWindow + 1
-	totalSize   = pdq.ImageSize * pdq.ImageSize
-	block       = pdq.ImageSize / outSize
+	totalSize   = ImageSize * ImageSize
+	block       = ImageSize / outSize
 	center      = block / 2
 	invKernel   = float32(1.0) / float32(kernelWidth)
 	tileSize    = 32
@@ -30,19 +28,19 @@ func JaroszFilter(src []float32) ([]float32, error) {
 	a := make([]float32, totalSize)
 	b := make([]float32, totalSize)
 
-	boxFilterH(src, a, pdq.ImageSize)
-	transpose(a, b, pdq.ImageSize)
-	boxFilterH(b, a, pdq.ImageSize)
-	transpose(a, b, pdq.ImageSize)
+	boxFilterH(src, a, ImageSize)
+	transpose(a, b, ImageSize)
+	boxFilterH(b, a, ImageSize)
+	transpose(a, b, ImageSize)
 
-	boxFilterH(b, a, pdq.ImageSize)
-	transpose(a, b, pdq.ImageSize)
-	boxFilterH(b, a, pdq.ImageSize)
-	transpose(a, b, pdq.ImageSize)
+	boxFilterH(b, a, ImageSize)
+	transpose(a, b, ImageSize)
+	boxFilterH(b, a, ImageSize)
+	transpose(a, b, ImageSize)
 
 	out := make([]float32, outSize*outSize)
 	for y := range outSize {
-		srcRow := b[(y*block+center)*pdq.ImageSize:]
+		srcRow := b[(y*block+center)*ImageSize:]
 		outRow := out[y*outSize:]
 		for x := range outSize {
 			outRow[x] = srcRow[x*block+center]

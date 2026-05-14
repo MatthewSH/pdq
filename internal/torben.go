@@ -1,7 +1,5 @@
 package internal
 
-import "github.com/MatthewSH/pdq"
-
 const n = 256
 const half = (n + 1) / 2
 
@@ -9,7 +7,7 @@ const half = (n + 1) / 2
 // Returns the median value or an error if the input slice length is not 256.
 func TorbenMedian(m []float32) (float32, error) {
 	if len(m) != n {
-		return 0, pdq.ErrTorbenElementLength
+		return 0, ErrTorbenElementLength
 	}
 
 	min, max := m[0], m[0]

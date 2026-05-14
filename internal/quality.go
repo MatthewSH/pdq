@@ -2,8 +2,6 @@ package internal
 
 import (
 	"math/bits"
-
-	"github.com/MatthewSH/pdq"
 )
 
 const (
@@ -22,7 +20,7 @@ func abs(x int) int {
 // Returns an error if the input matrix does not match the required dimensions.
 func ComputeQuality(matrix []float32) (int, error) {
 	if len(matrix) != dims {
-		return 0, pdq.ErrMatrixLength
+		return 0, ErrMatrixLength
 	}
 
 	m := matrix[:dims]
