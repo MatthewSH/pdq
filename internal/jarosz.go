@@ -11,6 +11,7 @@ const (
 	windowSize  = 16
 	halfWindow  = windowSize / 2
 	kernelWidth = 2*halfWindow + 1
+	totalSize   = pdq.ImageSize * pdq.ImageSize
 	block       = pdq.ImageSize / outSize
 	center      = block / 2
 	invKernel   = float32(1.0) / float32(kernelWidth)
@@ -18,8 +19,6 @@ const (
 )
 
 func JaroszFilter(src []float32) ([]float32, error) {
-	totalSize := pdq.ImageSize * pdq.ImageSize
-
 	if len(src) != totalSize {
 		return nil, fmt.Errorf(
 			"source image dimensions do not match expected: %d vs %d",
@@ -48,7 +47,7 @@ func JaroszFilter(src []float32) ([]float32, error) {
 			outRow[x] = srcRow[x*block+center]
 		}
 	}
-
+	
 	return out, nil
 }
 
