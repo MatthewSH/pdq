@@ -1,9 +1,11 @@
-name: release
+name: Tag & Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g. 1.0.0)"
+        required: true
 
 permissions:
   contents: write
@@ -21,6 +23,16 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.26'
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        run: |
+          git tag -a v${{ github.event.inputs.version }} -m "Release v${{ github.event.inputs.version }}"
+          git push origin v${{ github.event.inputs.version }}
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
