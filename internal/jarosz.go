@@ -1,50 +1,32 @@
 package internal
 
-import (
-	"fmt"
-)
+import "fmt"
 
-const (
-	outSize   = 64
-	totalSize = ImageSize * ImageSize
-)
+const outSize = 64
 
-// JaroszFilter applies a 2-pass Jarosz blur on the input image
-// and returns the downsampled 64x64 result.
-// Input must be ImageSize x ImageSize (512x512).
-func JaroszFilter(src []float32) ([]float32, error) {
-	if len(src) != totalSize {
+// JaroszFilter applies a 2-pass filter to src and returns
+// a downsampled 64x64 result.
+func JaroszFilter(src []float32, numRows, numCols int) ([]float32, error) {
+	if len(src) != numRows*numCols {
 		return nil, fmt.Errorf(
-			"source image dimensions do not match expected: %d vs %d",
-			len(src), totalSize,
+			"pdq: jarosz: src length %d does not match %dx%d=%d",
+			len(src), numRows, numCols, numRows*numCols,
 		)
 	}
 
-	windowRows := jaroszWindowSize(ImageSize)
-	windowCols := jaroszWindowSize(ImageSize)
+	windowRows := jaroszWindowSize(numRows)
+	windowCols := jaroszWindowSize(numCols)
 
-	a := make([]float32, totalSize)
-	b := make([]float32, totalSize)
+	a := make([]float32, numRows*numCols)
+	b := make([]float32, numRows*numCols)
 
-	boxAlongRows(src, a, ImageSize, ImageSize, windowRows)
-	boxAlongCols(a, b, ImageSize, ImageSize, windowCols)
+	boxAlongRows(src, a, numRows, numCols, windowCols)
+	boxAlongCols(a, b, numRows, numCols, windowRows)
 
-	boxAlongRows(b, a, ImageSize, ImageSize, windowRows)
-	boxAlongCols(a, b, ImageSize, ImageSize, windowCols)
+	boxAlongRows(b, a, numRows, numCols, windowCols)
+	boxAlongCols(a, b, numRows, numCols, windowRows)
 
-	block := ImageSize / outSize
-	center := block / 2
-
-	out := make([]float32, outSize*outSize)
-	for y := range outSize {
-		srcRow := b[(y*block+center)*ImageSize:]
-		outRow := out[y*outSize:]
-		for x := range outSize {
-			outRow[x] = srcRow[x*block+center]
-		}
-	}
-
-	return out, nil
+	return decimate(b, numRows, numCols), nil
 }
 
 // jaroszWindowSize computes the 1D box-filter window size for a single pass.
@@ -52,14 +34,30 @@ func jaroszWindowSize(oldDimension int) int {
 	return (oldDimension + 2*outSize - 1) / (2 * outSize)
 }
 
-// boxAlongRows applies a 1D box filter horizontally across every row.
+// decimate samples the center pixel of each output block, matching the
+// reference decimateFloat implementation:
+//
+//	ini = int(((outi + 0.5) * inNumRows) / outNumRows)
+func decimate(src []float32, numRows, numCols int) []float32 {
+	out := make([]float32, outSize*outSize)
+	for outi := range outSize {
+		ini := int((float64(outi) + 0.5) * float64(numRows) / float64(outSize))
+		srcRow := src[ini*numCols:]
+		outRow := out[outi*outSize:]
+		for outj := range outSize {
+			inj := int((float64(outj) + 0.5) * float64(numCols) / float64(outSize))
+			outRow[outj] = srcRow[inj]
+		}
+	}
+	return out
+}
+
 func boxAlongRows(src, dst []float32, numRows, numCols, windowSize int) {
 	for y := range numRows {
 		box1D(src[y*numCols:], dst[y*numCols:], numCols, 1, windowSize)
 	}
 }
 
-// boxAlongCols applies a 1D box filter vertically down every column.
 func boxAlongCols(src, dst []float32, numRows, numCols, windowSize int) {
 	for x := range numCols {
 		box1D(src[x:], dst[x:], numRows, numCols, windowSize)

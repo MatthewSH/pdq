@@ -26,14 +26,12 @@ func Hash(img image.Image) (Result, error) {
 		return Result{}, ErrNilImage
 	}
 
-	resized := internal.ResizeBilinear(img, internal.ImageSize)
-
-	luma, err := internal.ToLuminance(resized, internal.ImageSize)
+	luma, numRows, numCols, err := internal.PrepareImage(img)
 	if err != nil {
-		return Result{}, fmt.Errorf("pdq: luminance conversion failed: %w", err)
+		return Result{}, fmt.Errorf("pdq: image preparation failed: %w", err)
 	}
 
-	filtered, err := internal.JaroszFilter(luma)
+	filtered, err := internal.JaroszFilter(luma, numRows, numCols)
 	if err != nil {
 		return Result{}, fmt.Errorf("pdq: jarosz filter failed: %w", err)
 	}
