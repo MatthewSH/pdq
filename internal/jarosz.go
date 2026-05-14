@@ -7,6 +7,12 @@ const outSize = 64
 // JaroszFilter applies a 2-pass filter to src and returns
 // a downsampled 64x64 result.
 func JaroszFilter(src []float32, numRows, numCols int) ([]float32, error) {
+	if numRows <= 0 || numCols <= 0 {
+		return nil, fmt.Errorf(
+			"pdq: jarosz: dimensions must be positive, got %dx%d",
+			numRows, numCols,
+		)
+	}
 	if len(src) != numRows*numCols {
 		return nil, fmt.Errorf(
 			"pdq: jarosz: src length %d does not match %dx%d=%d",
