@@ -13,32 +13,39 @@ const (
 	kernelWidth = 2*halfWindow + 1
 	block       = pdq.ImageSize / outSize
 	center      = block / 2
+	invKernel   = float32(1.0) / float32(kernelWidth)
+	tileSize    = 32
 )
 
 func JaroszFilter(src []float32) ([]float32, error) {
 	totalSize := pdq.ImageSize * pdq.ImageSize
 
 	if len(src) != totalSize {
-		return nil, fmt.Errorf("source image dimensions do not match expected: %d vs %d", len(src), totalSize)
+		return nil, fmt.Errorf(
+			"source image dimensions do not match expected: %d vs %d",
+			len(src), totalSize,
+		)
 	}
 
-	temp := make([]float32, totalSize)
-	dest := make([]float32, totalSize)
+	a := make([]float32, totalSize)
+	b := make([]float32, totalSize)
 
-	boxFilterH(src, dest, pdq.ImageSize)
-	boxFilterV(dest, temp, pdq.ImageSize)
-	boxFilterH(temp, dest, pdq.ImageSize)
-	boxFilterV(dest, temp, pdq.ImageSize)
+	boxFilterH(src, a, pdq.ImageSize)
+	transpose(a, b, pdq.ImageSize)
+	boxFilterH(b, a, pdq.ImageSize)
+	transpose(a, b, pdq.ImageSize)
+
+	boxFilterH(b, a, pdq.ImageSize)
+	transpose(a, b, pdq.ImageSize)
+	boxFilterH(b, a, pdq.ImageSize)
+	transpose(a, b, pdq.ImageSize)
 
 	out := make([]float32, outSize*outSize)
-	for y := 0; y < outSize; y++ {
-		sy := y*block + center
-		rowOffset := sy * pdq.ImageSize
-		outOffset := y * outSize
-
-		for x := 0; x < outSize; x++ {
-			sx := x*block + center
-			out[outOffset+x] = dest[rowOffset+sx]
+	for y := range outSize {
+		srcRow := b[(y*block+center)*pdq.ImageSize:]
+		outRow := out[y*outSize:]
+		for x := range outSize {
+			outRow[x] = srcRow[x*block+center]
 		}
 	}
 
@@ -46,66 +53,39 @@ func JaroszFilter(src []float32) ([]float32, error) {
 }
 
 func boxFilterH(src, dest []float32, size int) {
-	for y := 0; y < size; y++ {
-		rowOffset := y * size
-		row := src[rowOffset : rowOffset+size]
+	for y := range size {
+		row := src[y*size : y*size+size]
+		drow := dest[y*size : y*size+size]
 
-		s := row[0] * float32(halfWindow)
-
+		s := row[0] * float32(halfWindow+1)
 		for j := 1; j <= halfWindow && j < size; j++ {
 			s += row[j]
 		}
-
-		s += row[0]
-		dest[rowOffset] = s / float32(kernelWidth)
+		drow[0] = s * invKernel
 
 		for x := 1; x < size; x++ {
-			jn := x + halfWindow
-			jp := x - halfWindow - 1
-
-			var lead, trail float32
-
-			if jn < size {
-				lead = row[jn]
+			if jn := x + halfWindow; jn < size {
+				s += row[jn]
 			}
-
-			if jp >= 0 {
-				trail = row[jp]
+			if jp := x - halfWindow - 1; jp >= 0 {
+				s -= row[jp]
 			}
-
-			s += lead - trail
-			dest[rowOffset+x] = s / float32(kernelWidth)
+			drow[x] = s * invKernel
 		}
 	}
 }
 
-func boxFilterV(src, dest []float32, size int) {
-	for x := 0; x < size; x++ {
-		s := src[x] * float32(halfWindow)
-
-		for i := 1; i <= halfWindow && i < size; i++ {
-			s += src[i*size+x]
-		}
-
-		s += src[x]
-		dest[x] = s / float32(kernelWidth)
-
-		for y := 1; y < size; y++ {
-			in := y + halfWindow
-			ip := y - halfWindow - 1
-
-			var lead, trail float32
-
-			if in < size {
-				lead = src[in*size+x]
+func transpose(src, dst []float32, size int) {
+	for i := 0; i < size; i += tileSize {
+		iEnd := min(i+tileSize, size)
+		for j := 0; j < size; j += tileSize {
+			jEnd := min(j+tileSize, size)
+			for ii := i; ii < iEnd; ii++ {
+				srcRow := src[ii*size:]
+				for jj := j; jj < jEnd; jj++ {
+					dst[jj*size+ii] = srcRow[jj]
+				}
 			}
-
-			if ip >= 0 {
-				trail = src[ip*size+x]
-			}
-
-			s += lead - trail
-			dest[y*size+x] = s / kernelWidth
 		}
 	}
 }
