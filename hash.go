@@ -24,3 +24,19 @@ func (h Hash256) String() string {
 func (h Hash256) IsZero() bool {
 	return h == Hash256{}
 }
+
+// Distance calculates the Hamming distance between the current 256-bit hash and another 256-bit hash.
+func (h Hash256) Distance(otherHash Hash256) int {
+	var distance int
+
+	for i := range h {
+		x := h[i] ^ otherHash[i]
+
+		for x != 0 {
+			distance += int(x & 1)
+			x >>= 1
+		}
+	}
+
+	return distance
+}
