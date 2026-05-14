@@ -15,10 +15,10 @@ func ResizeBilinear(src image.Image, size int) *image.RGBA {
 	return dst
 }
 
-// ToLuminance converts an RGBA image to a grayscale luminance representation and verifies the input image dimensions.
+// ToLuminance converts an RGBA image to a grayscale luminance representation.
 func ToLuminance(src *image.RGBA, size int) ([]float32, error) {
 	bounds := src.Bounds()
-	if (bounds.Dx() != size) || (bounds.Dy() != size) {
+	if bounds.Dx() != size || bounds.Dy() != size {
 		return nil, fmt.Errorf("source image dimensions do not match expected: %dx%d vs %dx%d", bounds.Dx(), bounds.Dy(), size, size)
 	}
 

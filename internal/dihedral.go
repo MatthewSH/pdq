@@ -1,7 +1,27 @@
 package internal
 
-// DihedralHashes generates 8 quantized hash representations by applying dihedral transformations to a 16x16 DCT array.
-// Returns a 2D array of 8x16 hashes or an error if the input size is not 16x16 or a related computation fails.
+// DihedralHashes generates 8 quantized hash representations by applying
+// dihedral transformations to a 16x16 DCT array.
+//
+// Sign conventions are taken directly from the C++ reference (pdqhashing.cpp):
+//
+//	orig      rot90     rot180    rot270
+//	noxpose   xpose     noxpose   xpose
+//	+ + + +   - + - +   + - + -   - - - -
+//	+ + + +   - + - +   - + - +   + + + +
+//	+ + + +   - + - +   + - + -   - - - -
+//	+ + + +   - + - +   - + - +   + + + +
+//
+//	flipx     flipy     flipplus  flipminus
+//	noxpose   noxpose   xpose     xpose
+//	- - - -   - + - +   + + + +   + - + -
+//	+ + + +   - + - +   + + + +   - + - +
+//	- - - -   - + - +   + + + +   + - + -
+//	+ + + +   - + - +   + + + +   - + - +
+//
+// For transposing transforms the C++ writes B[j][i] = ±A[i][j].
+// Our closures receive (outRow, outCol); the mapping is outRow=j_cpp,
+// outCol=i_cpp, so at(outCol, outRow) reads A[i][j].
 func DihedralHashes(dct []float32) ([8][16]uint16, error) {
 	if len(dct) != 16*16 {
 		return [8][16]uint16{}, ErrDihedralDCTSize
@@ -26,44 +46,61 @@ func DihedralHashes(dct []float32) ([8][16]uint16, error) {
 	}
 
 	transforms := []func(i, j int) float32{
-		// original
 		func(i, j int) float32 {
 			return at(i, j)
 		},
 
-		// rotate 90
+		// Rotate 90 CCW: transpose, negate even-row output
 		func(i, j int) float32 {
-			return sign(i&1 == 1) * at(j, i)
+			if i&1 != 0 {
+				return at(j, i)
+			}
+			return -at(j, i)
 		},
 
-		// rotate 180
+		// Rotate 180: no transpose, negate where (i+j) is odd
 		func(i, j int) float32 {
-			return sign((i+j)&1 == 0) * at(i, j)
+			if (i+j)&1 != 0 {
+				return -at(i, j)
+			}
+			return at(i, j)
 		},
 
-		// rotate 270
+		// Rotate 270 CCW: transpose, negate even-col output
 		func(i, j int) float32 {
-			return sign(j&1 == 1) * at(j, i)
+			if j&1 != 0 {
+				return at(j, i)
+			}
+			return -at(j, i)
 		},
 
-		// flip X
+		// Flip X (top/bottom swap): no transpose, negate even-row output
 		func(i, j int) float32 {
-			return sign(i&1 == 1) * at(i, j)
+			if i&1 != 0 {
+				return at(i, j)
+			}
+			return -at(i, j)
 		},
 
-		// flip Y
+		// Flip Y (left/right mirror): no transpose, negate even-col output
 		func(i, j int) float32 {
-			return sign(j&1 == 1) * at(i, j)
+			if j&1 != 0 {
+				return at(i, j)
+			}
+			return -at(i, j)
 		},
 
-		// flip +diagonal
+		// Flip +diagonal: transpose only, no sign change
 		func(i, j int) float32 {
 			return at(j, i)
 		},
 
-		// flip -diagonal
+		// Flip -diagonal: transpose, negate where (i+j) is odd
 		func(i, j int) float32 {
-			return sign((i+j)&1 == 0) * at(j, i)
+			if (i+j)&1 != 0 {
+				return -at(j, i)
+			}
+			return at(j, i)
 		},
 	}
 
@@ -77,10 +114,4 @@ func DihedralHashes(dct []float32) ([8][16]uint16, error) {
 	}
 
 	return out, nil
-}
-func sign(positive bool) float32 {
-	if positive {
-		return 1
-	}
-	return -1
 }

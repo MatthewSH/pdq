@@ -5,18 +5,13 @@ import (
 )
 
 const (
-	outSize     = 64
-	windowSize  = 16
-	halfWindow  = windowSize / 2
-	kernelWidth = 2*halfWindow + 1
-	totalSize   = ImageSize * ImageSize
-	block       = ImageSize / outSize
-	center      = block / 2
-	invKernel   = float32(1.0) / float32(kernelWidth)
-	tileSize    = 32
+	outSize   = 64
+	totalSize = ImageSize * ImageSize
 )
 
-// JaroszFilter applies a multi-stage Jarosz blur filter on the input image and returns the resulting filtered image.
+// JaroszFilter applies a 2-pass Jarosz blur on the input image
+// and returns the downsampled 64x64 result.
+// Input must be ImageSize x ImageSize (512x512).
 func JaroszFilter(src []float32) ([]float32, error) {
 	if len(src) != totalSize {
 		return nil, fmt.Errorf(
@@ -25,18 +20,20 @@ func JaroszFilter(src []float32) ([]float32, error) {
 		)
 	}
 
+	windowRows := jaroszWindowSize(ImageSize)
+	windowCols := jaroszWindowSize(ImageSize)
+
 	a := make([]float32, totalSize)
 	b := make([]float32, totalSize)
 
-	boxFilterH(src, a, ImageSize)
-	transpose(a, b, ImageSize)
-	boxFilterH(b, a, ImageSize)
-	transpose(a, b, ImageSize)
+	boxAlongRows(src, a, ImageSize, ImageSize, windowRows)
+	boxAlongCols(a, b, ImageSize, ImageSize, windowCols)
 
-	boxFilterH(b, a, ImageSize)
-	transpose(a, b, ImageSize)
-	boxFilterH(b, a, ImageSize)
-	transpose(a, b, ImageSize)
+	boxAlongRows(b, a, ImageSize, ImageSize, windowRows)
+	boxAlongCols(a, b, ImageSize, ImageSize, windowCols)
+
+	block := ImageSize / outSize
+	center := block / 2
 
 	out := make([]float32, outSize*outSize)
 	for y := range outSize {
@@ -50,40 +47,65 @@ func JaroszFilter(src []float32) ([]float32, error) {
 	return out, nil
 }
 
-func boxFilterH(src, dest []float32, size int) {
-	for y := range size {
-		row := src[y*size : y*size+size]
-		drow := dest[y*size : y*size+size]
+// jaroszWindowSize computes the 1D box-filter window size for a single pass.
+func jaroszWindowSize(oldDimension int) int {
+	return (oldDimension + 2*outSize - 1) / (2 * outSize)
+}
 
-		s := row[0] * float32(halfWindow+1)
-		for j := 1; j <= halfWindow && j < size; j++ {
-			s += row[j]
-		}
-		drow[0] = s * invKernel
-
-		for x := 1; x < size; x++ {
-			if jn := x + halfWindow; jn < size {
-				s += row[jn]
-			}
-			if jp := x - halfWindow - 1; jp >= 0 {
-				s -= row[jp]
-			}
-			drow[x] = s * invKernel
-		}
+// boxAlongRows applies a 1D box filter horizontally across every row.
+func boxAlongRows(src, dst []float32, numRows, numCols, windowSize int) {
+	for y := range numRows {
+		box1D(src[y*numCols:], dst[y*numCols:], numCols, 1, windowSize)
 	}
 }
 
-func transpose(src, dst []float32, size int) {
-	for i := 0; i < size; i += tileSize {
-		iEnd := min(i+tileSize, size)
-		for j := 0; j < size; j += tileSize {
-			jEnd := min(j+tileSize, size)
-			for ii := i; ii < iEnd; ii++ {
-				srcRow := src[ii*size:]
-				for jj := j; jj < jEnd; jj++ {
-					dst[jj*size+ii] = srcRow[jj]
-				}
-			}
-		}
+// boxAlongCols applies a 1D box filter vertically down every column.
+func boxAlongCols(src, dst []float32, numRows, numCols, windowSize int) {
+	for x := range numCols {
+		box1D(src[x:], dst[x:], numRows, numCols, windowSize)
+	}
+}
+
+// box1D implements the 4-phase sliding box filter from the reference.
+// stride is 1 for rows, numCols for columns.
+func box1D(in, out []float32, length, stride, fullWindowSize int) {
+	halfWindowSize := (fullWindowSize + 2) / 2
+	li, ri, oi, currentWindowSize := 0, 0, 0, 0
+
+	var sum float32
+
+	// accumulate without writing
+	for range halfWindowSize - 1 {
+		sum += in[ri]
+		currentWindowSize++
+		ri += stride
+	}
+
+	// write with growing window
+	for range fullWindowSize - halfWindowSize + 1 {
+		sum += in[ri]
+		currentWindowSize++
+		out[oi] = sum / float32(currentWindowSize)
+		ri += stride
+		oi += stride
+	}
+
+	// write with full window (add right, subtract left)
+	for range length - fullWindowSize {
+		sum += in[ri]
+		sum -= in[li]
+		out[oi] = sum / float32(currentWindowSize)
+		li += stride
+		ri += stride
+		oi += stride
+	}
+
+	// write with shrinking window
+	for range halfWindowSize - 1 {
+		sum -= in[li]
+		currentWindowSize--
+		out[oi] = sum / float32(currentWindowSize)
+		li += stride
+		oi += stride
 	}
 }
