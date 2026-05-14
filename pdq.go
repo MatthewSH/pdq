@@ -10,6 +10,10 @@ import (
 // Hash computes the PDQ perceptual hash of an image.
 // Returns the primary hash, quality score (0–100), and all 8 dihedral transform hashes.
 func Hash(img image.Image) (Result, error) {
+	if img == nil {
+		return Result{}, ErrNilImage
+	}
+
 	resized := internal.ResizeBilinear(img, internal.ImageSize)
 
 	luma, err := internal.ToLuminance(resized, internal.ImageSize)
@@ -44,8 +48,8 @@ func packHash(hash [16]uint16) Hash256 {
 	var out Hash256
 
 	for i, v := range hash {
-		out[i*2] = byte(v)
-		out[i*2+1] = byte(v >> 8)
+		out[i*2] = byte(v)        // low byte
+		out[i*2+1] = byte(v >> 8) // high byte
 	}
 
 	return out

@@ -43,6 +43,7 @@ func ComputeQuality(matrix []float32) (int, error) {
 		}
 	}
 
+	// 90 is pulled from Meta implementations in C++
 	if quality := gradientSum / 90; quality < 100 {
 		return quality, nil
 	}
